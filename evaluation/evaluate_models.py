@@ -82,6 +82,13 @@ def save_metrics(results):
 def main():
     parser = argparse.ArgumentParser(description="Evaluate BERT, LoRA, Prompt and RAG on AG News.")
     parser.add_argument("--sample-size", type=int, default=200)
+    parser.add_argument(
+        "--methods",
+        nargs="+",
+        default=None,
+        choices=METHODS,
+        help="只评测指定方法（默认四种全跑）",
+    )
     args = parser.parse_args()
 
     ensure_project_dirs()
@@ -92,8 +99,9 @@ def main():
     test_texts = dataset["test"]["text"][:sample_size]
     test_labels = dataset["test"]["label"][:sample_size]
 
+    methods = args.methods if args.methods else list(METHODS)
     results = []
-    for method in METHODS:
+    for method in methods:
         print(f"\nLoading {method.upper()}...")
         result = evaluate_method(method, test_texts, test_labels)
         results.append(result)

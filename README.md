@@ -28,8 +28,10 @@
 | 全量微调 | `bert-base-uncased` + Trainer | 分类头微调，checkpoint 与最终权重分目录保存 |
 | 高效微调 | PEFT LoRA + `bert-base-uncased` | 低秩适配，与 BERT 共用统一评估入口 |
 | 生成式 LLM | `Qwen/Qwen2-1.5B-Instruct`（fp16，`device_map=auto`） | Prompt 与 RAG 的生成后端（`transformers.pipeline`） |
-| RAG 检索 | Sentence-Transformers `all-MiniLM-L6-v2` + FAISS `IndexFlatIP` | 向量 L2 归一化后内积检索；索引与向量缓存于 `vector_store/` |
+| RAG 检索 | **BM25 + 稠密向量**（RRF 融合）+ 可选 **Cross-Encoder** 重排 | 配置见 `config/rag.yaml`；默认开启混合检索，关键词与语义互补 |
+| RAG 语料 | AG News `train` 可 **shuffle + 子集比例** 建库 | 降低「全 train 查 test」的乐观偏差，便于消融与面试表述 |
 | RAG 决策 | 检索加权投票 + LLM 在「弱 margin」时覆盖 | `margin < 0.15` 时采纳 LLM 标签，否则用投票结果 |
+| Prompt 解析 | **JSON `{"label": n}` 优先** + 单字符回退 | 由 `config/rag.yaml` 的 `prompt.prefer_json_output` 控制 |
 | 评估 | scikit-learn `accuracy` / `weighted F1` | 可选测试子集规模，输出 JSON/CSV 与柱状图 |
 | 演示 | Gradio | 单条预测、批量（按行）预测、方法下拉切换 |
 
@@ -65,6 +67,8 @@ python train.py --model lora --epochs 1
 ```bash
 python evaluate.py
 python evaluate.py --sample-size 500
+# 只跑 RAG（调 rag.yaml 后常用）
+python evaluate.py --sample-size 200 --methods rag
 ```
 
 在 **AG News 测试集全量（7600 条）** 上评测（BERT/LoRA 较快，Prompt/RAG 因逐条调用 LLM 会非常慢）：
@@ -78,7 +82,14 @@ python evaluate.py --sample-size 7600
 - `artifacts/predictions/evaluation_summary.json` / `.csv`
 - `artifacts/plots/accuracy_comparison.png`、`f1_comparison.png`
 
-**说明：** Prompt 路径依赖生成稳定性与小模型能力，子集与随机性会导致指标波动；RAG 首次会构建 FAISS 索引（或加载 `vector_store/` 下缓存）。
+**说明：** Prompt 路径依赖生成稳定性与小模型能力，子集与随机性会导致指标波动；RAG 首次会构建 **FAISS + BM25**（或加载 `vector_store/` 下缓存）。**若修改 `config/rag.yaml`（语料比例、hybrid、cross_encoder 等）**，请删除本地 `vector_store/` 目录后重新跑评估，以触发索引重建。
+
+### RAG 配置说明（`config/rag.yaml`）
+
+- **`hybrid`**：`enabled=true` 时启用 **BM25 + 稠密双路召回**，按 **RRF**（`rrf_k`）融合后再截断为 `merged_topk` 条参与投票与拼 prompt。  
+- **`cross_encoder`**：设为 `enabled: true` 时在融合结果上用 **`cross-encoder/ms-marco-MiniLM-L-6-v2`** 对 `(query, passage)` 重排（更重、更慢，适合写进简历作消融）。  
+- **`corpus`**：`train_index_fraction` 例如 `0.5` 表示仅将 **随机 shuffle 后前 50% train** 写入索引，用于对比「子集建库 vs 全量建库」的检索行为。  
+- **`prompt`**：`prefer_json_output` 为 true 时优先解析模型输出的 **`{"label": 0..3}`** JSON。
 
 ### 4. Gradio 演示
 
@@ -105,6 +116,8 @@ python app.py
 
 ```
 llm-text-classification-system/
+├── config/
+│   └── rag.yaml             # RAG：混合检索、语料子集、Cross-Encoder、Prompt JSON
 ├── train.py                 # 训练入口 → src/training/train_models.py
 ├── evaluate.py              # 评估入口 → evaluation/evaluate_models.py
 ├── app.py                   # Gradio 演示
@@ -118,7 +131,10 @@ llm-text-classification-system/
 │   │   └── predictors.py    # 统一 METHODS 与 get_model()
 │   ├── prompt/              # Prompt 分类提示词与推理
 │   ├── rag/
-│   │   └── rag_pipeline.py  # 建库、检索、加权投票、混合 RAG 分类
+│   │   ├── rag_pipeline.py   # 建库、RRF 混合检索入口、RAG 分类
+│   │   ├── settings.py       # 读取 config/rag.yaml
+│   │   ├── bm25_utils.py     # BM25Okapi 封装
+│   │   └── hybrid_retrieval.py  # RRF + 可选 Cross-Encoder
 │   └── llm/
 │       └── shared_pipeline.py  # Qwen2 生成 pipeline 单例
 ├── artifacts/
@@ -140,13 +156,14 @@ llm-text-classification-system/
 
 ### Prompt 路径
 
-- 固定类别说明与输出格式（仅输出 `0`–`3`），用正则从生成文本中提取首个合法标签。
+- 默认要求模型输出 **`{"label": n}`** JSON（可关），解析失败再回退到 **单字符 0–3** 与边界安全正则。
 - 不经过检索，直接考察 **小尺寸指令模型在封闭标签集上的指令遵循能力**。
 
 ### RAG 路径
 
-- 用 **句向量** 在训练集新闻上建库，查询阶段取 top-k 相似样本，构造 **few-shot 风格上下文** 再交给 Qwen2 生成标签。
-- **检索加权投票**与 **LLM 输出** 做 **混合决策**：当投票分差较小（实现中 `margin < 0.15`）时更信任 LLM，否则以检索投票为主，兼顾稳健性与可解释性（可展示相似新闻）。
+- **BM25（稀疏）+ Sentence-BERT（稠密）** 双路召回，**RRF** 融合后再参与 **加权投票**；可选 **Cross-Encoder** 在融合候选上重排（见 `config/rag.yaml`）。
+- 建库语料支持 **train 子集 + 固定随机种子 shuffle**，便于与「全 train 建库」做对比实验。
+- 用检索到的样本构造 **few-shot 风格上下文** 交给 Qwen2 生成标签；**投票 margin** 与 **LLM** 混合决策（`margin < 0.15`）不变。
 
 ## 硬件建议
 
@@ -159,4 +176,4 @@ llm-text-classification-system/
 
 ---
 
-*技术栈：PyTorch · Transformers · PEFT · Sentence-Transformers · FAISS · Gradio · AG News*
+*技术栈：PyTorch · Transformers · PEFT · Sentence-Transformers · FAISS · rank-bm25 · Gradio · AG News*

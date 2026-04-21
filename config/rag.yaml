@@ -1,0 +1,25 @@
+# RAG / 混合检索配置（纯 NLP 岗：稀疏+稠密 + 可复现语料切分）
+# 修改后需删除 vector_store 下旧索引或运行一次强制重建（见 README）
+
+hybrid:
+  enabled: true
+  bm25_topk: 50
+  dense_topk: 50
+  rrf_k: 60
+  merged_topk: 32
+
+cross_encoder:
+  enabled: false
+  model_name: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  # 对 RRF 合并后的前若干条 (query, passage) 重排，再取 vote_topk 参与投票与拼 prompt
+  rerank_pool: 24
+  vote_topk: 8
+
+corpus:
+  # 仅用训练集的一部分建索引：便于对比「全量 train 建库」与「子集建库」的检索泄漏叙事
+  train_index_fraction: 1.0
+  shuffle_seed: 42
+
+prompt:
+  # 优先解析 {"label": N} 再回退单字符（减少误解析）
+  prefer_json_output: true

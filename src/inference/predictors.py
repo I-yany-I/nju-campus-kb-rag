@@ -7,7 +7,13 @@ from src.models.bert_model import BertClassifier
 from src.models.lora_model import LoRAClassifier
 from src.prompt.prompt_classifier import classify_news as prompt_classify
 from src.prompt.prompt_classifier import load_llm as load_prompt_llm
-from src.rag.rag_pipeline import build_vector_index, load_data, load_llm as load_rag_llm, rag_classify
+from src.rag.rag_pipeline import (
+    build_vector_index,
+    load_llm as load_rag_llm,
+    load_rag_train_corpus,
+    rag_classify,
+)
+from src.rag.settings import load_rag_settings
 
 
 LABEL_MAP = {
@@ -84,10 +90,13 @@ class PromptPredictor:
 
 class RAGPredictor:
     def __init__(self):
-        texts, labels = load_data()
+        self.settings = load_rag_settings()
+        texts, labels = load_rag_train_corpus(self.settings)
         self.texts = texts
         self.labels = labels
-        self.index, self.embed_model = build_vector_index(texts)
+        self.index, self.embed_model, self.bm25 = build_vector_index(
+            texts, labels, self.settings
+        )
         self.llm = load_rag_llm()
 
     def predict_with_details(self, text: str) -> PredictionResult:
@@ -98,6 +107,8 @@ class RAGPredictor:
             self.index,
             self.embed_model,
             self.llm,
+            bm25=self.bm25,
+            settings=self.settings,
         )
         try:
             label_id = int(label)

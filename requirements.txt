@@ -5,6 +5,8 @@ gradio
 matplotlib
 numpy
 peft
+PyYAML
+rank_bm25
 scikit-learn
 sentence-transformers
 torch
