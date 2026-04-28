@@ -2,6 +2,7 @@ import json
 import argparse
 import sys
 from pathlib import Path
+from typing import Optional
 
 import matplotlib.pyplot as plt
 from datasets import load_dataset
@@ -16,12 +17,21 @@ from src.inference.predictors import METHODS, get_model
 from src.paths import PLOTS_DIR, PREDICTIONS_DIR, ensure_project_dirs
 
 
-def evaluate_method(method: str, texts, labels):
+def evaluate_method(method: str, texts, labels, batch_size: int = 64):
     predictor = get_model(method)
-    predictions = []
+    predictions: list = []
 
-    for text in tqdm(texts, desc=f"Evaluating {method.upper()}"):
-        predictions.append(predictor.predict(text))
+    if method in ("bert", "lora") and hasattr(predictor, "predict_batch"):
+        for start in tqdm(
+            range(0, len(texts), batch_size),
+            desc=f"Evaluating {method.upper()} (batch={batch_size})",
+        ):
+            chunk = texts[start : start + batch_size]
+            preds = predictor.predict_batch(chunk)
+            predictions.extend(preds)
+    else:
+        for text in tqdm(texts, desc=f"Evaluating {method.upper()}"):
+            predictions.append(predictor.predict(text))
 
     accuracy = accuracy_score(labels, predictions)
     f1 = f1_score(labels, predictions, average="weighted")
@@ -58,15 +68,17 @@ def save_visualizations(results):
     plt.close()
 
 
-def save_metrics(results):
-    summary = [
-        {
+def save_metrics(results, sample_size: Optional[int] = None):
+    summary = []
+    for item in results:
+        row = {
             "method": item["method"],
             "accuracy": round(item["accuracy"], 4),
             "f1": round(item["f1"], 4),
         }
-        for item in results
-    ]
+        if sample_size is not None:
+            row["n"] = sample_size
+        summary.append(row)
 
     with open(PREDICTIONS_DIR / "evaluation_summary.json", "w", encoding="utf-8") as file:
         json.dump(summary, file, ensure_ascii=False, indent=2)
@@ -89,6 +101,17 @@ def main():
         choices=METHODS,
         help="只评测指定方法（默认四种全跑）",
     )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=64,
+        help="BERT/LoRA 分块 batch 推理的 batch 大小（仅对 bert/lora 生效）",
+    )
+    parser.add_argument(
+        "--write-full-test-json",
+        action="store_true",
+        help="在评测结束后，将带 n 字段的 summary 额外写入 evaluation_summary_full_test.json（便于与简历对齐）",
+    )
     args = parser.parse_args()
 
     ensure_project_dirs()
@@ -103,7 +126,7 @@ def main():
     results = []
     for method in methods:
         print(f"\nLoading {method.upper()}...")
-        result = evaluate_method(method, test_texts, test_labels)
+        result = evaluate_method(method, test_texts, test_labels, batch_size=args.batch_size)
         results.append(result)
         print(
             f"{method.upper()} -> "
@@ -112,7 +135,25 @@ def main():
         )
 
     save_visualizations(results)
-    save_metrics(results)
+    save_metrics(results, sample_size=sample_size)
+    if args.write_full_test_json:
+        out = PREDICTIONS_DIR / "evaluation_summary_full_test.json"
+        merged: dict = {}
+        if out.exists():
+            with open(out, encoding="utf-8") as file:
+                for row in json.load(file):
+                    merged[row["method"]] = row
+        for item in results:
+            merged[item["method"]] = {
+                "method": item["method"],
+                "accuracy": round(item["accuracy"], 4),
+                "f1": round(item["f1"], 4),
+                "n": sample_size,
+            }
+        ordered = [merged[m] for m in METHODS if m in merged]
+        with open(out, "w", encoding="utf-8") as file:
+            json.dump(ordered, file, ensure_ascii=False, indent=2)
+        print(f"Also merged: {out}")
 
     print(f"\nSaved plots to: {PLOTS_DIR}")
     print(f"Saved metric summaries to: {PREDICTIONS_DIR}")

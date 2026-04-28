@@ -101,16 +101,25 @@ python app.py
 
 ## 评估结果示例
 
-在 **测试集前 200 条** 上的一次运行结果（仅供参考，以本地 `evaluate.py` 输出为准）：
+**权威汇总（含样本量 `n`）**：`artifacts/predictions/evaluation_summary_full_test.json`。典型口径为 **BERT/LoRA 在测试集全量 7600 条上 batch 推理**，**Prompt/RAG 在前 200 条**上对照（成本）。
 
-| 方法 | Accuracy | Weighted F1 |
-|------|----------|-------------|
-| BERT | ~0.96 | ~0.96 |
-| LoRA | ~0.925 | ~0.926 |
-| Prompt | 视生成稳定性而定 | 视生成稳定性而定 |
-| RAG | ~0.92 | ~0.92 |
+复现示例（需已安装依赖；RAG 改动后务必重跑 Prompt/RAG 子集）：
 
-完整对比请查看 `artifacts/predictions/evaluation_summary.json`。
+```bash
+python evaluate.py --sample-size 7600 --methods bert lora --batch-size 128 --write-full-test-json
+python evaluate.py --sample-size 200 --methods prompt rag --write-full-test-json
+```
+
+| 方法 | Accuracy | Weighted F1 | 备注 |
+|------|----------|-------------|------|
+| BERT | 0.9478 | 0.9478 | n=7600 |
+| LoRA | 0.9147 | 0.9145 | n=7600 |
+| Prompt | 0.435 | 0.3705 | n=200，随生成/解析波动 |
+| RAG | 0.93 | 0.9305 | n=200，改 `config/rag.yaml` 后请重评 |
+
+单次仅跑部分方法时，`--write-full-test-json` 会与已有 `evaluation_summary_full_test.json` **按 method 合并**，避免覆盖未重跑的方法。
+
+当前仓库内一次跑通结果亦会写入 `artifacts/predictions/evaluation_summary.json`（本次评测所含方法）。
 
 ## 项目结构
 
