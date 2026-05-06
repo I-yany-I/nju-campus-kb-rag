@@ -13,7 +13,7 @@
 
 系统只基于知识库片段作答，回答中返回引用来源；当知识库没有依据时明确拒答，避免把通用大模型的记忆当成学校政策。
 
-> 知识库（`data/campus_kb/nju_official_kb.jsonl`）收录了信息化服务、教务服务、学生服务三大类共 **40 条**办事指南，覆盖 VPN、统一身份认证、成绩单、选课、补考重修、一卡通、图书馆等高频场景。正式部署时应以南京大学各主管部门最新公开通知为准。
+> 知识库（`data/campus_kb/nju_official_kb.jsonl`）收录了信息化服务、教务服务、学生服务、财务、出国（境）等多类办事指南，共 **75 条**文档，覆盖 VPN、统一身份认证、信息门户、移动 App、网盘、视频会议、培养方案、选课、考试、推免、四六级、心理咨询、医保、就业三方、档案、离校、学费水电、签证证明等高频场景。正式部署时应以南京大学各主管部门最新公开通知为准。
 
 ## 系统架构
 
@@ -110,7 +110,7 @@ python app.py
 python evaluate_campus_kb.py
 ```
 
-从 `data/campus_kb/eval_questions.jsonl`（47 条）加载评估问题，输出整体指标与分类别指标：
+从 `data/campus_kb/eval_questions.jsonl`（81 条）加载评估问题，输出整体指标与按类别（it / academic / student / finance / international / refusal）分组的指标：
 
 | 指标 | 含义 |
 |------|------|
@@ -141,8 +141,8 @@ nju-campus-kb-rag/
 │   └── campus_kb.yaml             # 知识库、检索、重排、生成配置
 ├── data/
 │   └── campus_kb/
-│       ├── nju_official_kb.jsonl  # 40 条办事指南知识库
-│       └── eval_questions.jsonl   # 47 条评估问题集
+│       ├── nju_official_kb.jsonl  # 75 条办事指南知识库
+│       └── eval_questions.jsonl   # 81 条评估问题集
 ├── evaluation/
 │   └── metrics.py                 # citation_hit_rate / refusal_accuracy 等指标
 ├── src/

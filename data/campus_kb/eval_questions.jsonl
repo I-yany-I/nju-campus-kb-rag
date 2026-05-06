@@ -45,3 +45,37 @@
 {"id":"q-refuse-03","question":"帮我登录教务系统看一下我有没有挂科。","expected_doc_ids":[],"should_refuse":true,"category":"refusal"}
 {"id":"q-refuse-04","question":"学校医院门诊怎么报销医疗费用？","expected_doc_ids":[],"should_refuse":true,"category":"refusal"}
 {"id":"q-refuse-05","question":"我档案现在在哪里，怎么提取？","expected_doc_ids":[],"should_refuse":true,"category":"refusal"}
+{"id":"q-portal-01","question":"学校信息门户登录入口在哪里？","expected_doc_ids":["nju-it-portal"],"should_refuse":false,"category":"it"}
+{"id":"q-app-01","question":"南京大学官方手机 App 在哪里下载？","expected_doc_ids":["nju-it-mobile-app"],"should_refuse":false,"category":"it"}
+{"id":"q-cloud-01","question":"学校有提供网盘或 OneDrive 吗？","expected_doc_ids":["nju-it-cloud"],"should_refuse":false,"category":"it"}
+{"id":"q-meeting-01","question":"学校有 Zoom 或腾讯会议的授权账号吗？","expected_doc_ids":["nju-it-meeting"],"should_refuse":false,"category":"it"}
+{"id":"q-mooc-01","question":"在哪里看在线课程的回放？","expected_doc_ids":["nju-it-mooc"],"should_refuse":false,"category":"it"}
+{"id":"q-print-01","question":"在校园里怎么打印文件？","expected_doc_ids":["nju-it-print"],"should_refuse":false,"category":"it"}
+{"id":"q-traffic-01","question":"怎么查我这个月校园网用了多少流量？","expected_doc_ids":["nju-it-traffic"],"should_refuse":false,"category":"it"}
+{"id":"q-software-others-01","question":"学校能用 Adobe 或 EndNote 吗？","expected_doc_ids":["nju-it-software-others"],"should_refuse":false,"category":"it"}
+{"id":"q-curriculum-01","question":"我专业的培养方案在哪里查？","expected_doc_ids":["nju-ac-curriculum"],"should_refuse":false,"category":"academic"}
+{"id":"q-credits-01","question":"通识课和专业课的学分分别要修多少？","expected_doc_ids":["nju-ac-credits","nju-ac-curriculum"],"should_refuse":false,"category":"academic"}
+{"id":"q-schedule-01","question":"怎么把课表导出到手机日历？","expected_doc_ids":["nju-ac-schedule"],"should_refuse":false,"category":"academic"}
+{"id":"q-exam-schedule-01","question":"期末考试时间和考场在哪里查？","expected_doc_ids":["nju-ac-exam-schedule"],"should_refuse":false,"category":"academic"}
+{"id":"q-exam-discipline-01","question":"考试作弊会受到什么处分？","expected_doc_ids":["nju-ac-exam-discipline"],"should_refuse":false,"category":"academic"}
+{"id":"q-attendance-01","question":"旷课会扣平时分吗？","expected_doc_ids":["nju-ac-attendance"],"should_refuse":false,"category":"academic"}
+{"id":"q-cross-school-01","question":"可以去南京其他大学选课吗？","expected_doc_ids":["nju-ac-cross-school"],"should_refuse":false,"category":"academic"}
+{"id":"q-summer-01","question":"暑期学校怎么报名？","expected_doc_ids":["nju-ac-summer"],"should_refuse":false,"category":"academic"}
+{"id":"q-recommend-01","question":"保研需要满足什么条件？","expected_doc_ids":["nju-ac-recommend"],"should_refuse":false,"category":"academic"}
+{"id":"q-exchange-01","question":"我去国外交换的课程能换学分吗？","expected_doc_ids":["nju-ac-exchange"],"should_refuse":false,"category":"academic"}
+{"id":"q-warning-01","question":"学业警告是怎么回事？","expected_doc_ids":["nju-ac-warning"],"should_refuse":false,"category":"academic"}
+{"id":"q-cet-01","question":"四六级考试怎么报名？","expected_doc_ids":["nju-ac-cet"],"should_refuse":false,"category":"academic"}
+{"id":"q-database-01","question":"在校外怎么用知网下载论文？","expected_doc_ids":["nju-stu-lib-database","nju-it-vpn"],"should_refuse":false,"category":"student"}
+{"id":"q-room-01","question":"图书馆研讨间怎么预约？","expected_doc_ids":["nju-stu-lib-room"],"should_refuse":false,"category":"student"}
+{"id":"q-pe-01","question":"体测要考哪些项目？","expected_doc_ids":["nju-stu-pe"],"should_refuse":false,"category":"student"}
+{"id":"q-counseling-01","question":"心理压力大想找人聊聊，学校有这个服务吗？","expected_doc_ids":["nju-stu-counseling"],"should_refuse":false,"category":"student"}
+{"id":"q-clinic-01","question":"校医院看病怎么挂号？","expected_doc_ids":["nju-stu-clinic"],"should_refuse":false,"category":"student"}
+{"id":"q-insurance-01","question":"放假回家在老家看病能用学生医保吗？","expected_doc_ids":["nju-stu-insurance"],"should_refuse":false,"category":"student"}
+{"id":"q-lost-01","question":"学生证在教学楼丢了，去哪里找？","expected_doc_ids":["nju-stu-lost-found"],"should_refuse":false,"category":"student"}
+{"id":"q-employment-01","question":"三方协议怎么办理盖章？","expected_doc_ids":["nju-stu-employment"],"should_refuse":false,"category":"student"}
+{"id":"q-archive-01","question":"毕业后档案会去哪里？","expected_doc_ids":["nju-stu-archive"],"should_refuse":false,"category":"student"}
+{"id":"q-checkout-01","question":"毕业前要办哪些离校手续？","expected_doc_ids":["nju-stu-checkout"],"should_refuse":false,"category":"student"}
+{"id":"q-tuition-01","question":"学费怎么交，能用支付宝吗？","expected_doc_ids":["nju-fin-tuition"],"should_refuse":false,"category":"finance"}
+{"id":"q-utility-01","question":"宿舍电费用完了怎么充？","expected_doc_ids":["nju-fin-utility"],"should_refuse":false,"category":"finance"}
+{"id":"q-passport-01","question":"办护照学校能开什么证明？","expected_doc_ids":["nju-intl-passport"],"should_refuse":false,"category":"international"}
+{"id":"q-visa-01","question":"申请留学签证需要学校开哪些材料？","expected_doc_ids":["nju-intl-visa","nju-ac-transcript-en","nju-ac-enrollment"],"should_refuse":false,"category":"international"}
