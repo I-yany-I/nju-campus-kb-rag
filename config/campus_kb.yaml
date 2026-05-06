@@ -1,5 +1,5 @@
 knowledge_base:
-  path: data/campus_kb/nju_it_academic_demo.jsonl
+  path: data/campus_kb/nju_official_kb.jsonl
   chunk_size: 420
   chunk_overlap: 80
 
