@@ -2,6 +2,8 @@
 results/
 artifacts/
 vector_store/
+data/campus_kb/*.local.jsonl
+data/campus_kb/private_*.jsonl
 __pycache__/
 *.py[codz]
 *$py.class

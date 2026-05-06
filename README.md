@@ -1,183 +1,159 @@
-# 基于 BERT / LoRA / Prompt / RAG 的 AG News 文本分类对比系统
+# 南京大学校园办事指南 RAG 问答系统
 
-> 在 **AG News 四分类**任务上，统一训练、评估与推理流程，对比 **全量微调（BERT）**、**参数高效微调（LoRA）**、**纯提示词分类（Prompt）** 与 **检索增强（Sentence-BERT + FAISS + 小模型 LLM，含检索投票与混合决策）**，并配套 Gradio 交互与可复现指标输出。
+> 面向 **南京大学学生的校园 IT / 教务办事指南**，构建一个可引用、可拒答、可消融的文本知识库问答系统。项目不再把 BERT、LoRA、Prompt、RAG 当作同一层级的方法横向对比，而是让它们在一条产品链路中各司其职：文本召回、BERT 重排、Prompt 约束生成、LoRA 领域适配。
 
-## 系统架构（四条路径）
+## 项目定位
+
+本项目解决的是学生常见办事问题，例如：
+
+- 「校园 VPN 怎么用？」
+- 「统一身份认证密码忘了怎么办？」
+- 「成绩单或在读证明去哪里办理？」
+- 「选课、退课、重修类问题应该看哪个流程？」
+
+系统只基于知识库片段作答，回答中返回引用来源；当知识库没有依据时明确拒答，避免把通用大模型的记忆当成学校政策。
+
+> 当前仓库内置的是 **演示知识库**，用于展示南京大学校园办事场景的工程链路。正式部署时应替换为南京大学信息门户、信息化建设管理服务中心、教务处等公开页面或个人整理的可授权材料。
+
+## 系统架构
 
 ```
-                    AG News 文本输入
-                           │
-         ┌─────────────────┼─────────────────┐
-         ▼                 ▼                 ▼
-   BERT / LoRA      Prompt（Qwen2）    RAG 路径
-   HuggingFace      单条指令 + 标签约束   Sentence-BERT 编码
-   Trainer 训练      直接生成 0–3        FAISS 相似检索（top-k）
-         │                 │                 │
-         └─────────────────┴─────────────────┘
-                           │
-              统一 predictors 接口 → 准确率 / 加权 F1
-                           │
-              Gradio：单条 / 批量预测 + 方法切换
+用户问题
+  │
+  ├─ 查询改写 Prompt（可选：让口语问题更适合检索）
+  │
+  ▼
+BM25 关键词召回 + Sentence-Transformer 稠密召回
+  │
+  ▼
+RRF 融合候选
+  │
+  ▼
+BERT Cross-Encoder 重排（可选消融）
+  │
+  ▼
+Top-N 引用片段
+  │
+  ▼
+Qwen2 文本生成 / LoRA 适配模型（可选）
+  │
+  ▼
+带引用的中文回答 + 拒答判断
 ```
 
 ## 技术栈
 
 | 模块 | 技术 | 说明 |
 |------|------|------|
-| 数据集 | Hugging Face `datasets` | `ag_news`，4 类：World / Sports / Business / Sci-Tech |
-| 全量微调 | `bert-base-uncased` + Trainer | 分类头微调，checkpoint 与最终权重分目录保存 |
-| 高效微调 | PEFT LoRA + `bert-base-uncased` | 低秩适配，与 BERT 共用统一评估入口 |
-| 生成式 LLM | `Qwen/Qwen2-1.5B-Instruct`（fp16，`device_map=auto`） | Prompt 与 RAG 的生成后端（`transformers.pipeline`） |
-| RAG 检索 | **BM25 + 稠密向量**（RRF 融合）+ 可选 **Cross-Encoder** 重排 | 配置见 `config/rag.yaml`；默认开启混合检索，关键词与语义互补 |
-| RAG 语料 | AG News `train` 可 **shuffle + 子集比例** 建库 | 降低「全 train 查 test」的乐观偏差，便于消融与面试表述 |
-| RAG 决策 | 检索加权投票 + LLM 在「弱 margin」时覆盖 | `margin < 0.15` 时采纳 LLM 标签，否则用投票结果 |
-| Prompt 解析 | **JSON `{"label": n}` 优先** + 单字符回退 | 由 `config/rag.yaml` 的 `prompt.prefer_json_output` 控制 |
-| 评估 | scikit-learn `accuracy` / `weighted F1` | 可选测试子集规模，输出 JSON/CSV 与柱状图 |
-| 演示 | Gradio | 单条预测、批量（按行）预测、方法下拉切换 |
+| 知识库 | JSONL 文档 + 段落分块 | 支持标题、部门、来源、更新时间等元数据 |
+| 稠密检索 | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` + FAISS | 适合中文问句与办事片段的语义召回 |
+| 稀疏检索 | BM25 + RRF | 保留「VPN」「统一身份认证」「成绩单」等关键词优势 |
+| BERT 重排 | `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | 对 `(问题, 片段)` 重新打分，提高引用命中率 |
+| Prompt | 有据作答、引用格式、拒答策略 | 约束模型只依据检索证据回答 |
+| LoRA | PEFT adapter 可选加载 | 用少量问答对适配校园办事口吻与输出格式 |
+| 生成端 | `Qwen/Qwen2-1.5B-Instruct` 或抽取式 fallback | 默认可先跑抽取式回答；配置开启 LLM 后生成自然语言 |
+| 演示 | Gradio | 单轮问答、引用片段、检索分数可视化 |
 
 ## 快速开始
 
-### 1. 环境
+### 1. 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-建议使用 **Python 3.10+**，并已安装 **PyTorch**（CUDA 可选；LLM 推理在 GPU 上更快）。
+建议使用 Python 3.10+。CPU 可运行检索和抽取式回答；开启 Qwen2 生成时建议使用 CUDA。
 
-### 2. 训练 BERT / LoRA（可选）
-
-首次运行会从 Hugging Face 拉取 `ag_news` 与 `bert-base-uncased`。训练产物写入 `artifacts/checkpoints/` 与 `artifacts/models/`。
+### 2. 构建校园知识库索引
 
 ```bash
-# 训练 BERT 与 LoRA（各跑一遍）
-python train.py --model all --epochs 1
-
-# 仅训练其一
-python train.py --model bert --epochs 1
-python train.py --model lora --epochs 1
+python build_campus_kb_index.py
 ```
 
-默认 `TrainingArguments`：`lr=2e-5`，`batch` 16/64（train/eval），`max_length=128`，按 epoch 保存 checkpoint。
+默认读取 `data/campus_kb/nju_it_academic_demo.jsonl`，并把 FAISS 索引与元数据写入 `vector_store/campus_kb/`。
 
-### 3. 统一评估（四方法对比）
+如果替换为真实材料，只需要保持 JSONL 字段一致：
 
-对测试集**前 N 条**（默认 `N=200`）逐条推理，汇总准确率、加权 F1，并生成对比图与表格：
-
-```bash
-python evaluate.py
-python evaluate.py --sample-size 500
-# 只跑 RAG（调 rag.yaml 后常用）
-python evaluate.py --sample-size 200 --methods rag
+```json
+{"id": "nju-it-vpn", "title": "校园 VPN 使用说明", "department": "信息化服务", "source": "https://...", "updated_at": "2026-05-06", "tags": ["VPN", "校外访问"], "text": "正文..."}
 ```
 
-在 **AG News 测试集全量（7600 条）** 上评测（BERT/LoRA 较快，Prompt/RAG 因逐条调用 LLM 会非常慢）：
-
-```bash
-python evaluate.py --sample-size 7600
-```
-
-输出位置：
-
-- `artifacts/predictions/evaluation_summary.json` / `.csv`
-- `artifacts/plots/accuracy_comparison.png`、`f1_comparison.png`
-
-**说明：** Prompt 路径依赖生成稳定性与小模型能力，子集与随机性会导致指标波动；RAG 首次会构建 **FAISS + BM25**（或加载 `vector_store/` 下缓存）。**若修改 `config/rag.yaml`（语料比例、hybrid、cross_encoder 等）**，请删除本地 `vector_store/` 目录后重新跑评估，以触发索引重建。
-
-### RAG 配置说明（`config/rag.yaml`）
-
-- **`hybrid`**：`enabled=true` 时启用 **BM25 + 稠密双路召回**，按 **RRF**（`rrf_k`）融合后再截断为 `merged_topk` 条参与投票与拼 prompt。  
-- **`cross_encoder`**：设为 `enabled: true` 时在融合结果上用 **`cross-encoder/ms-marco-MiniLM-L-6-v2`** 对 `(query, passage)` 重排（更重、更慢，适合写进简历作消融）。  
-- **`corpus`**：`train_index_fraction` 例如 `0.5` 表示仅将 **随机 shuffle 后前 50% train** 写入索引，用于对比「子集建库 vs 全量建库」的检索行为。  
-- **`prompt`**：`prefer_json_output` 为 true 时优先解析模型输出的 **`{"label": 0..3}`** JSON。
-
-### 4. Gradio 演示
+### 3. 启动 Gradio 演示
 
 ```bash
 python app.py
 ```
 
-浏览器访问终端提示的本地地址（一般为 `http://127.0.0.1:7860`）。支持 **BERT / LoRA / PROMPT / RAG** 切换，**单条**与**批量（每行一条）**预测；RAG 结果中可展示检索到的相似新闻片段。
+页面会展示回答、引用片段、来源标题和检索分数。示例问题：
 
-## 评估结果示例
+- `校园网外怎么访问校内资源？`
+- `统一身份认证密码忘记了怎么办？`
+- `成绩单和在读证明应该找哪个部门？`
 
-**权威汇总（含样本量 `n`）**：`artifacts/predictions/evaluation_summary_full_test.json`。典型口径为 **BERT/LoRA 在测试集全量 7600 条上 batch 推理**，**Prompt/RAG 在前 200 条**上对照（成本）。
-
-复现示例（需已安装依赖；RAG 改动后务必重跑 Prompt/RAG 子集）：
+### 4. 运行轻量评估
 
 ```bash
-python evaluate.py --sample-size 7600 --methods bert lora --batch-size 128 --write-full-test-json
-python evaluate.py --sample-size 200 --methods prompt rag --write-full-test-json
+python evaluate_campus_kb.py
 ```
 
-| 方法 | Accuracy | Weighted F1 | 备注 |
-|------|----------|-------------|------|
-| BERT | 0.9478 | 0.9478 | n=7600 |
-| LoRA | 0.9147 | 0.9145 | n=7600 |
-| Prompt | 0.435 | 0.3705 | n=200，随生成/解析波动 |
-| RAG | 0.93 | 0.9305 | n=200，改 `config/rag.yaml` 后请重评 |
+评估脚本使用小规模种子问题，关注：
 
-单次仅跑部分方法时，`--write-full-test-json` 会与已有 `evaluation_summary_full_test.json` **按 method 合并**，避免覆盖未重跑的方法。
+- **Citation Hit Rate**：Top-N 引用是否命中预期文档。
+- **Refusal Accuracy**：知识库外问题是否拒答。
+- **Retrieval Coverage**：召回结果是否覆盖办事所需材料。
 
-当前仓库内一次跑通结果亦会写入 `artifacts/predictions/evaluation_summary.json`（本次评测所含方法）。
+## 配置说明
+
+主要配置位于 `config/campus_kb.yaml`：
+
+- `knowledge_base.path`：知识库 JSONL 路径。
+- `retrieval.hybrid_enabled`：是否启用 BM25 + 稠密召回融合。
+- `retrieval.cross_encoder.enabled`：是否启用 BERT Cross-Encoder 重排。
+- `generation.backend`：`extractive` 或 `llm`。
+- `generation.lora_adapter_path`：LoRA adapter 路径；为空则使用基座模型。
+- `prompt.refusal_threshold`：低相似度时触发拒答。
 
 ## 项目结构
 
 ```
-llm-text-classification-system/
+nju-campus-kb-rag/
+├── app.py                         # Gradio 校园问答演示
+├── build_campus_kb_index.py       # 构建 / 刷新 FAISS 索引
+├── evaluate_campus_kb.py          # 引用命中与拒答评估
 ├── config/
-│   └── rag.yaml             # RAG：混合检索、语料子集、Cross-Encoder、Prompt JSON
-├── train.py                 # 训练入口 → src/training/train_models.py
-├── evaluate.py              # 评估入口 → evaluation/evaluate_models.py
-├── app.py                   # Gradio 演示
-├── evaluation/
-│   └── evaluate_models.py   # 四方法评测、绘图与指标落盘
+│   └── campus_kb.yaml             # 知识库、检索、重排、生成配置
+├── data/
+│   └── campus_kb/
+│       └── nju_it_academic_demo.jsonl
 ├── src/
-│   ├── paths.py             # artifacts / data / vector_store 路径约定
-│   ├── models/              # BERT / LoRA 封装与加载
-│   ├── training/            # Trainer 训练逻辑
-│   ├── inference/
-│   │   └── predictors.py    # 统一 METHODS 与 get_model()
-│   ├── prompt/              # Prompt 分类提示词与推理
-│   ├── rag/
-│   │   ├── rag_pipeline.py   # 建库、RRF 混合检索入口、RAG 分类
-│   │   ├── settings.py       # 读取 config/rag.yaml
-│   │   ├── bm25_utils.py     # BM25Okapi 封装
-│   │   └── hybrid_retrieval.py  # RRF + 可选 Cross-Encoder
-│   └── llm/
-│       └── shared_pipeline.py  # Qwen2 生成 pipeline 单例
-├── artifacts/
-│   ├── models/              # 训练完成后的 bert / lora
-│   ├── checkpoints/         # 训练过程 checkpoint
-│   ├── plots/               # 评估柱状图
-│   └── predictions/         # evaluation_summary.json / csv
-├── vector_store/            # FAISS 索引与 embeddings 缓存（自动生成）
-├── data/                    # 可选本地数据扩展
+│   └── campus_kb_rag/
+│       ├── config.py              # 配置加载
+│       ├── documents.py           # JSONL 读取与分块
+│       ├── retriever.py           # BM25 + FAISS + Cross-Encoder
+│       ├── generator.py           # Prompt、LLM/LoRA、抽取式 fallback
+│       └── pipeline.py            # 端到端问答流程
+├── vector_store/                  # 本地索引缓存（自动生成，不提交）
 └── requirements.txt
 ```
 
-## 核心技术要点
+## 面试讲法
 
-### BERT 与 LoRA
+这个项目的核心不是「BERT、LoRA、Prompt、RAG 谁更强」，而是一个合理的文本 RAG 系统分层：
 
-- 同一 tokenizer（`bert-base-uncased`）与同一数据管线，便于公平对比参数量与推理路径差异。
-- LoRA 通过 PEFT 注入适配层，适合在资源有限时复现「大模型下游任务」的常见做法。
+- **RAG** 是主链路：把南京大学校园办事材料作为外部证据，避免模型凭记忆回答。
+- **BERT Cross-Encoder** 是检索增强模块：对候选片段做精排，提高引用准确率。
+- **Prompt** 是输出约束：要求模型给出引用、说明依据不足时拒答。
+- **LoRA** 是生成端可选适配：用少量校园办事问答把语气和格式适配到真实服务场景。
 
-### Prompt 路径
+## 与多模态 RAG 的区别
 
-- 默认要求模型输出 **`{"label": n}`** JSON（可关），解析失败再回退到 **单字符 0–3** 与边界安全正则。
-- 不经过检索，直接考察 **小尺寸指令模型在封闭标签集上的指令遵循能力**。
-
-### RAG 路径
-
-- **BM25（稀疏）+ Sentence-BERT（稠密）** 双路召回，**RRF** 融合后再参与 **加权投票**；可选 **Cross-Encoder** 在融合候选上重排（见 `config/rag.yaml`）。
-- 建库语料支持 **train 子集 + 固定随机种子 shuffle**，便于与「全 train 建库」做对比实验。
-- 用检索到的样本构造 **few-shot 风格上下文** 交给 Qwen2 生成标签；**投票 margin** 与 **LLM** 混合决策（`margin < 0.15`）不变。
+本项目处理的是 **纯文本办事指南**，证据是文档段落；另一个多模态 RAG 项目处理的是 **图像证据**，核心在 CLIP 图文空间与 Qwen2-VL。两个项目都叫 RAG，但输入模态、检索对象和评估重点不同。
 
 ## 硬件建议
 
-- **GPU**：推荐 8GB+ 显存（BERT/LoRA 训练与 Qwen2-1.5B 推理）；CPU 可跑 BERT/LoRA 推理，但 LLM 较慢。
-- **磁盘**：预留空间用于 Hugging Face 模型缓存、`artifacts/` 与 `vector_store/` 索引文件。
+- **CPU**：可运行索引、检索、抽取式回答与轻量评估。
+- **GPU**：推荐用于 Qwen2 生成、Cross-Encoder 大批量重排或 LoRA adapter 推理。
+- **磁盘**：预留 Hugging Face 模型缓存与 `vector_store/` 索引空间。
 
 ## 相关项目
 
@@ -185,4 +161,4 @@ llm-text-classification-system/
 
 ---
 
-*技术栈：PyTorch · Transformers · PEFT · Sentence-Transformers · FAISS · rank-bm25 · Gradio · AG News*
+*技术栈：PyTorch · Transformers · PEFT · Sentence-Transformers · FAISS · rank-bm25 · Gradio · Campus KB RAG*

@@ -1,107 +1,75 @@
+"""Gradio demo for the Nanjing University campus KB RAG system."""
+
+from __future__ import annotations
+
 import gradio as gr
 
-from src.inference.predictors import LABEL_MAP, METHODS, get_model, parse_batch_texts
+from src.campus_kb_rag import CampusKBRAG
 
 
-METHOD_CHOICES = [method.upper() for method in METHODS]
+rag = CampusKBRAG()
 
 
-def format_single_result(result):
-    lines = [
-        f"Method: {result.method.upper()}",
-        f"Predicted Label: {result.label_id}",
-        f"Category: {result.label_name}",
+def answer(question: str, top_k: int):
+    result = rag.ask(question, top_k=int(top_k))
+    citation_rows = [
+        [
+            c["index"],
+            c["title"],
+            c["department"],
+            c["source"],
+            c["updated_at"],
+            round(float(c.get("score") or 0.0), 4),
+        ]
+        for c in result.get("citations", [])
     ]
-
-    if result.examples:
-        lines.append("")
-        lines.append("Retrieved Similar News:")
-        lines.extend(f"- {example}" for example in result.examples)
-
-    return "\n".join(lines)
-
-
-def run_single_prediction(method_name: str, text: str):
-    text = text.strip()
-    if not text:
-        return "Please enter one piece of news text."
-
-    predictor = get_model(method_name.lower())
-    result = predictor.predict_with_details(text)
-    return format_single_result(result)
+    retrieved_text = "\n\n".join(
+        [
+            f"[{i}] {item['title']} | score={float(item.get('score', 0.0)):.4f}\n"
+            f"{item['text']}"
+            for i, item in enumerate(result.get("retrieved", []), start=1)
+        ]
+    )
+    return result["answer"], citation_rows, retrieved_text
 
 
-def run_batch_prediction(method_name: str, raw_text: str):
-    texts = parse_batch_texts(raw_text)
-    if not texts:
-        return [], "Please enter one text per line for batch prediction."
-
-    predictor = get_model(method_name.lower())
-    predictions = predictor.predict_batch(texts)
-
-    rows = [
-        [text, label_id, LABEL_MAP.get(label_id, "Unknown")]
-        for text, label_id in zip(texts, predictions)
-    ]
-
-    return rows, f"Predicted {len(rows)} texts with {method_name.upper()}."
-
-
-with gr.Blocks(title="News Classification Comparison") as demo:
+with gr.Blocks(title="南京大学校园办事指南 RAG") as demo:
+    gr.Markdown("# 南京大学校园办事指南 RAG 问答系统")
     gr.Markdown(
-        """
-        # News Classification Comparison
-        Compare BERT, LoRA, Prompt, and RAG on the same input.
-
-        Labels:
-        - `0` = World
-        - `1` = Sports
-        - `2` = Business
-        - `3` = Sci/Tech
-        """
+        "面向校园 IT / 教务办事场景：BM25 + 语义召回，BERT Cross-Encoder 重排，"
+        "Prompt 约束有据作答；生成端可切换为 Qwen2 / LoRA adapter。"
     )
 
-    method_selector = gr.Dropdown(
-        choices=METHOD_CHOICES,
-        value="BERT",
-        label="Prediction Method",
-    )
-
-    with gr.Tab("Single Prediction"):
-        single_text = gr.Textbox(
-            lines=6,
-            placeholder="Enter one news text here...",
-            label="News Text",
+    with gr.Row():
+        question = gr.Textbox(
+            label="请输入校园办事问题",
+            lines=3,
+            value="校园网外怎么访问校内资源？",
         )
-        single_button = gr.Button("Predict")
-        single_output = gr.Textbox(label="Prediction Result", lines=12)
+        top_k = gr.Slider(1, 8, value=5, step=1, label="引用片段数")
 
-    with gr.Tab("Batch Prediction"):
-        batch_text = gr.Textbox(
-            lines=12,
-            placeholder="Enter one news text per line...",
-            label="Batch Input",
-        )
-        batch_button = gr.Button("Run Batch Prediction")
-        batch_status = gr.Textbox(label="Status", lines=2)
-        batch_output = gr.Dataframe(
-            headers=["text", "label_id", "label_name"],
-            datatype=["str", "number", "str"],
-            label="Batch Prediction Results",
-        )
+    ask_btn = gr.Button("查询")
+    answer_box = gr.Textbox(label="回答", lines=7)
+    citation_table = gr.Dataframe(
+        headers=["引用", "标题", "部门", "来源", "更新时间", "分数"],
+        label="引用来源",
+    )
+    retrieved_box = gr.Textbox(label="检索片段详情", lines=12)
 
-    single_button.click(
-        fn=run_single_prediction,
-        inputs=[method_selector, single_text],
-        outputs=single_output,
+    gr.Examples(
+        examples=[
+            ["校园网外怎么访问校内资源？", 5],
+            ["统一身份认证密码忘记了怎么办？", 5],
+            ["成绩单和在读证明应该找哪个部门？", 5],
+            ["选课错过退课时间怎么办？", 5],
+            ["宿舍电费怎么充值？", 5],
+        ],
+        inputs=[question, top_k],
     )
 
-    batch_button.click(
-        fn=run_batch_prediction,
-        inputs=[method_selector, batch_text],
-        outputs=[batch_output, batch_status],
-    )
+    ask_btn.click(answer, inputs=[question, top_k], outputs=[answer_box, citation_table, retrieved_box])
 
 
 if __name__ == "__main__":
+    rag.build_index(force=False)
     demo.launch()

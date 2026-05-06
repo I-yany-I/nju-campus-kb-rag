@@ -1,14 +1,10 @@
 accelerate
-datasets
 faiss-cpu
 gradio
-matplotlib
 numpy
 peft
 PyYAML
 rank_bm25
-scikit-learn
 sentence-transformers
 torch
-tqdm
 transformers

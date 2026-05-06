@@ -1,0 +1,39 @@
+knowledge_base:
+  path: data/campus_kb/nju_it_academic_demo.jsonl
+  chunk_size: 420
+  chunk_overlap: 80
+
+index:
+  dir: vector_store/campus_kb
+  faiss_path: vector_store/campus_kb/faiss.index
+  metadata_path: vector_store/campus_kb/chunks.json
+  rebuild: false
+
+retrieval:
+  embedding_model: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+  dense_top_k: 12
+  bm25_top_k: 12
+  final_top_k: 5
+  hybrid_enabled: true
+  rrf_k: 60
+  cross_encoder:
+    enabled: true
+    model_name: cross-encoder/mmarco-mMiniLMv2-L12-H384-v1
+    rerank_pool: 10
+
+generation:
+  backend: extractive     # extractive | llm
+  model_name: Qwen/Qwen2-1.5B-Instruct
+  lora_adapter_path: null
+  max_new_tokens: 384
+  temperature: 0.2
+  device_map: auto
+
+prompt:
+  institution: 南京大学
+  persona: 南京大学校园办事指南助手
+  refusal_threshold: 0.18
+  refusal_doc_ids:
+    - nju-support-unknown
+  require_citations: true
+  max_context_chars: 2600
