@@ -9,7 +9,7 @@ from src.campus_kb_rag import CampusKBRAG
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build Nanjing University campus KB index.")
-    parser.add_argument("--config", default=None, help="Path to config/campus_kb.yaml")
+    parser.add_argument("--config", default=None, help="主配置文件（可选；省略则用项目默认）")
     parser.add_argument("--force", action="store_true", help="Rebuild index even if cache exists.")
     args = parser.parse_args()
 

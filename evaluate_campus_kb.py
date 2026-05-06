@@ -46,16 +46,16 @@ def per_category_summary(results: List[Dict]) -> Dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate NJU campus KB RAG.")
-    parser.add_argument("--config", default=None, help="Path to campus_kb.yaml")
+    parser.add_argument("--config", default=None, help="主配置文件（可选；省略则用项目默认）")
     parser.add_argument(
         "--questions",
         default=DEFAULT_EVAL_QUESTIONS,
-        help="Path to eval_questions.jsonl",
+        help="评估问题集（可选；省略则用内置集）",
     )
     parser.add_argument(
         "--output",
         default="artifacts/predictions/campus_kb_eval.json",
-        help="Path to write evaluation output JSON",
+        help="评测汇总 JSON 的输出位置",
     )
     args = parser.parse_args()
 

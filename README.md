@@ -13,7 +13,7 @@
 
 系统只基于知识库片段作答，回答中返回引用来源；当知识库没有依据时明确拒答，避免把通用大模型的记忆当成学校政策。
 
-> 知识库（`data/campus_kb/nju_official_kb.jsonl`）收录了信息化服务、教务服务、学生服务、财务、出国（境）等多类办事指南，共 **75 条**文档，覆盖 VPN、统一身份认证、信息门户、移动 App、网盘、视频会议、培养方案、选课、考试、推免、四六级、心理咨询、医保、就业三方、档案、离校、学费水电、签证证明等高频场景。正式部署时应以南京大学各主管部门最新公开通知为准。
+> 内置 JSONL 知识库收录信息化服务、教务服务、学生服务、财务、出国（境）等多类办事指南，共 **75 条**文档，覆盖 VPN、统一身份认证、信息门户、移动 App、网盘、视频会议、培养方案、选课、考试、推免、四六级、心理咨询、医保、就业三方、档案、离校、学费水电、签证证明等高频场景。正式部署时应以南京大学各主管部门最新公开通知为准。
 
 ## 系统架构
 
@@ -70,7 +70,7 @@ pip install -r requirements.txt
 python build_campus_kb_index.py
 ```
 
-默认读取 `data/campus_kb/nju_official_kb.jsonl`，把 FAISS 索引与元数据写入 `vector_store/campus_kb/`。强制重建索引：
+默认读取配置中的知识库数据，将 FAISS 索引与元数据写入本地索引目录（首次运行自动生成）。强制重建索引：
 
 ```bash
 python build_campus_kb_index.py --force
@@ -110,7 +110,7 @@ python app.py
 python evaluate_campus_kb.py
 ```
 
-从 `data/campus_kb/eval_questions.jsonl`（81 条）加载评估问题，输出整体指标与按类别（it / academic / student / finance / international / refusal）分组的指标：
+从内置评估问题集（81 条）加载问题，输出整体指标与按类别（it / academic / student / finance / international / refusal）分组的指标：
 
 | 指标 | 含义 |
 |------|------|
@@ -119,42 +119,27 @@ python evaluate_campus_kb.py
 | `refusal_accuracy` | 知识库外问题被正确拒答的比例 |
 | `false_refusal_rate` | 有答案但系统拒答的比例（越低越好） |
 
-## 配置说明（`config/campus_kb.yaml`）
+## 配置说明
+
+主配置文件位于仓库根目录，YAML 格式，可调知识库来源、检索与重排开关、生成后端与拒答阈值等。常用项含义如下：
 
 | 配置项 | 说明 |
 |--------|------|
-| `knowledge_base.path` | 知识库 JSONL 路径 |
+| `knowledge_base.path` | 知识库数据文件位置 |
 | `retrieval.hybrid_enabled` | 是否启用 BM25 + 稠密召回融合 |
 | `retrieval.cross_encoder.enabled` | 是否启用 BERT Cross-Encoder 重排 |
 | `generation.backend` | `extractive`（默认）或 `llm` |
-| `generation.lora_adapter_path` | LoRA adapter 路径；为空则使用基座模型 |
+| `generation.lora_adapter_path` | LoRA adapter；为空则使用基座模型 |
 | `prompt.refusal_threshold` | 低相似度时触发拒答 |
 
-## 项目结构
+## 目录结构（概要）
 
-```
-nju-campus-kb-rag/
-├── app.py                         # Gradio 校园问答演示
-├── build_campus_kb_index.py       # 构建 / 刷新 FAISS 索引
-├── evaluate_campus_kb.py          # 引用命中与拒答评估
-├── config/
-│   └── campus_kb.yaml             # 知识库、检索、重排、生成配置
-├── data/
-│   └── campus_kb/
-│       ├── nju_official_kb.jsonl  # 75 条办事指南知识库
-│       └── eval_questions.jsonl   # 81 条评估问题集
-├── evaluation/
-│   └── metrics.py                 # citation_hit_rate / refusal_accuracy 等指标
-├── src/
-│   └── campus_kb_rag/
-│       ├── config.py              # 配置加载与路径解析
-│       ├── documents.py           # JSONL 读取与段落分块
-│       ├── retriever.py           # BM25 + FAISS + Cross-Encoder
-│       ├── generator.py           # Prompt、LLM/LoRA、抽取式 fallback
-│       └── pipeline.py            # 端到端问答流程
-├── vector_store/                  # 本地索引缓存（自动生成，不提交）
-└── requirements.txt
-```
+- **入口脚本：** Gradio 演示、索引构建、离线评估。
+- **配置：** 根目录 YAML，集中管理知识库与管线参数。
+- **数据：** JSONL 知识库与评估问题集（条数见上文）。
+- **源码：** `campus_kb_rag` 包（配置加载、分块、检索、生成、端到端流水线）。
+- **评测：** 引用命中率、拒答等指标计算模块。
+- **运行产物：** 本地向量索引与评测输出（默认不纳入版本控制）。
 
 ## 面试讲法
 
@@ -173,7 +158,7 @@ nju-campus-kb-rag/
 
 - **CPU**：可运行索引构建、检索、抽取式回答与评估。
 - **GPU**：推荐用于 Qwen2 生成、Cross-Encoder 大批量重排或 LoRA adapter 推理。
-- **磁盘**：预留 Hugging Face 模型缓存与 `vector_store/` 索引空间。
+- **磁盘**：预留 Hugging Face 模型缓存与本地向量索引占用空间。
 
 ## 相关项目
 
