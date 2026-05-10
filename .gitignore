@@ -8,6 +8,12 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Cursor IDE (local workspace metadata)
+.cursor/
+
+# LaTeX resume build artifacts accidentally copied into repo root
+resume_zh.*
+
 # C extensions
 *.so
 
