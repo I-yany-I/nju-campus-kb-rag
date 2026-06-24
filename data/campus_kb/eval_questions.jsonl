@@ -79,3 +79,48 @@
 {"id":"q-utility-01","question":"宿舍电费用完了怎么充？","expected_doc_ids":["nju-fin-utility"],"should_refuse":false,"category":"finance"}
 {"id":"q-passport-01","question":"办护照学校能开什么证明？","expected_doc_ids":["nju-intl-passport"],"should_refuse":false,"category":"international"}
 {"id":"q-visa-01","question":"申请留学签证需要学校开哪些材料？","expected_doc_ids":["nju-intl-visa","nju-ac-transcript-en","nju-ac-enrollment"],"should_refuse":false,"category":"international"}
+{"id": "q-multi-082", "question": "VPN 连不上，而且统一身份认证密码也忘了，应该先处理哪个？分别怎么办？", "expected_doc_ids": ["nju-it-vpn", "nju-it-auth-password"], "should_refuse": false, "category": "it"}
+{"id": "q-multi-083", "question": "在校外用 VPN 访问教务系统选课，但选课系统一直繁忙，有什么办法？", "expected_doc_ids": ["nju-it-vpn", "nju-ac-course-select"], "should_refuse": false, "category": "it"}
+{"id": "q-multi-084", "question": "大一新生入学，怎么激活账号、设置邮箱、连上校园 WiFi？", "expected_doc_ids": ["nju-it-auth-activate", "nju-it-email", "nju-it-wifi"], "should_refuse": false, "category": "it"}
+{"id": "q-multi-085", "question": "成绩不及格，补考过了之后 GPA 怎么算？和重修有什么区别？", "expected_doc_ids": ["nju-ac-exam-makeup", "nju-ac-retake", "nju-ac-gpa"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-086", "question": "申请缓考没通过，缺考了怎么办？还能补考或重修吗？", "expected_doc_ids": ["nju-ac-exam-defer", "nju-ac-exam-makeup", "nju-ac-retake"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-087", "question": "想转专业到另一个院系，但 GPA 刚好够门槛，还需要准备什么材料？转过去之后原来的课能抵学分吗？", "expected_doc_ids": ["nju-ac-major-transfer", "nju-ac-gpa"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-088", "question": "大四要毕业了，怎么确认自己学分修够了？如果差一门选修课，能延期毕业吗？", "expected_doc_ids": ["nju-ac-graduation", "nju-ac-retake", "nju-ac-gpa"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-089", "question": "选课满了，能跨院选同一门课吗？跨院选的课算不算 GPA？", "expected_doc_ids": ["nju-ac-course-add", "nju-ac-gpa"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-090", "question": "毕业论文查重没过，成绩也不及格，还能毕业吗？要怎么补救？", "expected_doc_ids": ["nju-ac-thesis", "nju-ac-retake", "nju-ac-graduation"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-091", "question": "出国交流期间的成绩怎么换算 GPA？回来之后需要申请英文成绩单给交流学校吗？", "expected_doc_ids": ["nju-ac-gpa", "nju-ac-transcript-en"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-092", "question": "用学校邮箱注册了正版 Office 和 MATLAB，毕业后还能继续用吗？邮箱会被收回吗？", "expected_doc_ids": ["nju-it-software-office", "nju-it-software-matlab", "nju-it-email"], "should_refuse": false, "category": "it"}
+{"id": "q-multi-093", "question": "宿舍有线网和 WiFi 都连不上，怎么判断是自己的设备问题还是学校网络故障？怎么报修？", "expected_doc_ids": ["nju-it-wifi", "nju-it-wired", "nju-it-repair"], "should_refuse": false, "category": "it"}
+{"id": "q-multi-094", "question": "收到钓鱼邮件说账号异常，不小心点了链接输了密码，现在该怎么办？", "expected_doc_ids": ["nju-it-security", "nju-it-auth-password"], "should_refuse": false, "category": "it"}
+{"id": "q-multi-095", "question": "毕业前需要打印中文和英文成绩单、在读证明，分别在哪里办？需要提前多久申请？", "expected_doc_ids": ["nju-ac-transcript", "nju-ac-transcript-en", "nju-ac-enrollment"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-096", "question": "辅修了双学位，主修专业 GPA 不够会不会影响双学位的学位授予？", "expected_doc_ids": ["nju-ac-minor", "nju-ac-gpa", "nju-ac-degree"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-097", "question": "转专业成功后，原来专业的必修课挂了还需要重修吗？新专业的培养方案里没有这门课", "expected_doc_ids": ["nju-ac-major-transfer", "nju-ac-retake", "nju-ac-graduation"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-098", "question": "成绩复核申请被拒了，但确实觉得分数不对，还有什么申诉渠道？", "expected_doc_ids": ["nju-ac-grade-review", "nju-ac-gpa"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-099", "question": "用学校邮箱注册的第三方服务（GitHub学生包等），毕业邮箱失效后怎么办？", "expected_doc_ids": ["nju-it-email", "nju-it-software-office"], "should_refuse": false, "category": "it"}
+{"id": "q-multi-100", "question": "补退选阶段退了一门课想换成另一门，但另一门也满了，有没有候补机制？", "expected_doc_ids": ["nju-ac-course-drop", "nju-ac-course-add", "nju-ac-course-select"], "should_refuse": false, "category": "academic"}
+{"id": "q-multi-101", "question": "学信网查到的 GPA 和学校教务系统显示的不一样，应该以哪个为准？找谁更正？", "expected_doc_ids": ["nju-ac-status", "nju-ac-gpa"], "should_refuse": false, "category": "academic"}
+{"id": "q-refuse-102", "question": "学校附近哪家餐馆好吃又便宜？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-103", "question": "怎么申请美国的研究生？需要什么材料？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-104", "question": "图书馆的开放时间和闭馆日是什么？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-105", "question": "南京大学的校训是什么？有什么含义？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-106", "question": "学校附近哪里有打印店？价格怎么样？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-107", "question": "怎么申请国家奖学金？需要什么条件？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-108", "question": "最近的地铁站离学校哪个门最近？怎么走过去？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-109", "question": "南大化学系哪位教授的课最好过？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-110", "question": "学校里的 ATM 机在哪儿？支持哪些银行？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-111", "question": "2026 年南京大学在全国排名第几？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-112", "question": "怎么联系校长办公室？校长邮箱是多少？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-113", "question": "学校发的被子质量怎么样？需要自己带吗？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-114", "question": "南大和北大哪个好？为什么？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-115", "question": "怎么加入学生会？有哪些部门？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-refuse-116", "question": "学校里有哪些社团？怎么报名参加？", "expected_doc_ids": [], "should_refuse": true, "category": "refusal"}
+{"id": "q-fin-117", "question": "学费怎么交？可以用微信或支付宝吗？", "expected_doc_ids": [], "should_refuse": false, "category": "finance"}
+{"id": "q-fin-118", "question": "学费迟交了有什么影响？会不会被注销学籍？", "expected_doc_ids": [], "should_refuse": false, "category": "finance"}
+{"id": "q-fin-119", "question": "住宿费包含在学费里吗？还是单独交？", "expected_doc_ids": [], "should_refuse": false, "category": "finance"}
+{"id": "q-intl-120", "question": "出国交换期间南大的学籍状态是什么？算不算休学？", "expected_doc_ids": [], "should_refuse": false, "category": "international"}
+{"id": "q-intl-121", "question": "国际学生怎么激活统一身份认证？需要护照吗？", "expected_doc_ids": [], "should_refuse": false, "category": "international"}
+{"id": "q-intl-122", "question": "留学生宿舍怎么申请？和国际交流学生住一起吗？", "expected_doc_ids": [], "should_refuse": false, "category": "international"}
+{"id": "q-it-123", "question": "正版软件的授权到期了怎么续期？", "expected_doc_ids": ["nju-it-software-office", "nju-it-software-matlab"], "should_refuse": false, "category": "it"}
+{"id": "q-stu-124", "question": "学生证丢了怎么补办？需要什么材料？", "expected_doc_ids": [], "should_refuse": false, "category": "student"}
+{"id": "q-stu-125", "question": "校园卡丢了怎么挂失？里面的钱能找回吗？", "expected_doc_ids": [], "should_refuse": false, "category": "student"}
+{"id": "q-stu-126", "question": "医保报销的流程是怎样的？校医院看不了要去外面医院怎么报销？", "expected_doc_ids": [], "should_refuse": false, "category": "student"}
